@@ -1,0 +1,47 @@
+local luapy = require('luapy') -- Предполагается, что у вас установлена библиотека LuaPy
+local nlp = luapy.require('nltk')
+local NemToolAPI = require('nemtoolapi')
+
+-- Создание пространства (таблицы) в базе данных
+local space = box.schema.space.create('NemBD')
+space:format({
+    {name = 'id', type = 'unsigned'},
+    {name = 'name', type = 'string'}
+})
+space:create_index('primary', {parts = {'id'}, unique = true})
+
+-- Создание пользователя с идентификатором 1
+space:insert{1, 'Анна Васина'}
+
+-- Создание пользователя с идентификатором 2
+space:insert{2, 'Вася Пупкин'}
+
+-- Функция для обработки запросов на естественном языке с использованием NemToolAPI
+local function process_query(query)
+    -- Использование NemToolAPI для обработки запроса на естественном языке
+    local processed_query = NemToolAPI.process(query)
+    
+    -- Пример обработки запроса на поиск пользователя по имени
+    if processed_query.intent == 'search_user' then
+        local name = processed_query.entities.name
+        local result = space.index.primary:select{name}
+        return result
+    end
+    
+    -- Другие операции и обработка запросов...
+    
+    -- Возвращение пустого результата по умолчанию
+    return {}
+end
+
+-- Пример использования функции обработки запросов
+local query = 'Найти пользователя по имени Анна Васина'
+local result = process_query(query)
+for _, row in ipairs(result) do
+    print("ID:", row[1])
+    print("Name:", row[2])
+    print()
+end
+
+-- Завершение работы с базой данных
+box.space.NemBD:close()
